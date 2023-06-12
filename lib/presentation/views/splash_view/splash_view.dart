@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../utils/navigation_helper.dart';
+import '../home_view/home_view.dart';
 import '../user_auth_view/user_auth_view.dart';
 
 class SplashView extends StatefulWidget {
@@ -16,7 +18,7 @@ class _SplashViewBodyState extends State<SplashView> {
   @override
   void initState() {
     super.initState();
-    _checkAdminLogin();
+    _checkUserLogin();
   }
 
   @override
@@ -30,9 +32,20 @@ class _SplashViewBodyState extends State<SplashView> {
     );
   }
 
-  _checkAdminLogin() {
+  _checkUserLogin() {
     Timer(const Duration(seconds: 3), () async {
-      NavigationHelper.pushReplacement(context, const UserAuthView());
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        NavigationHelper.pushReplacement(
+          context,
+          HomeView(),
+        );
+      } else {
+        NavigationHelper.pushReplacement(
+          context,
+          const UserAuthView(),
+        );
+      }
     });
   }
 }

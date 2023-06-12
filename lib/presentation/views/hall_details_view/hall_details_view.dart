@@ -1,23 +1,36 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:two_be_wedd_user_app/configs/front_end_configs.dart';
 import 'package:two_be_wedd_user_app/utils/extensions.dart';
-import 'package:two_be_wedd_user_app/utils/navigation_helper.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../configs/front_end_configs.dart';
+import '../../../infrastructure/models/hall_model.dart';
+import '../../../utils/navigation_helper.dart';
+import '../../../utils/utils.dart';
+import '../../elements/custom_image.dart';
 import '../book_hall_view/book_hall_view.dart';
 
 class HallDetailsView extends StatelessWidget {
-  const HallDetailsView({Key? key}) : super(key: key);
+  const HallDetailsView({Key? key, required this.hall}) : super(key: key);
+  final HallModel hall;
 
   @override
   Widget build(BuildContext context) {
+    final List<String> hallImages = [
+      hall.firstImage ?? "",
+      hall.secondImage ?? "",
+      hall.thirdImage ?? "",
+      hall.fourthImage ?? "",
+    ];
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
+              width: double.infinity,
               decoration: BoxDecoration(
+                color: context.theme.colorScheme.surface,
                 borderRadius:
                     const BorderRadius.vertical(bottom: Radius.circular(35)),
                 boxShadow: [
@@ -42,13 +55,15 @@ class HallDetailsView extends StatelessWidget {
                   autoPlayCurve: Curves.fastOutSlowIn,
                   scrollDirection: Axis.horizontal,
                 ),
-                items: List.generate(4,
-                        (index) => "assets/images/hall_image_${index + 1}.jpg")
-                    .map((i) {
+                items: hallImages.map((i) {
                   return ClipRRect(
                       borderRadius: const BorderRadius.vertical(
                           bottom: Radius.circular(35)),
-                      child: Image.asset(i, fit: BoxFit.fill));
+                      child: CustomImage(
+                        image: i,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ));
                 }).toList(),
               ),
             ),
@@ -58,7 +73,7 @@ class HallDetailsView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Deewan e Khas",
+                    hall.name ?? "",
                     style: Theme.of(context)
                         .textTheme
                         .titleLarge!
@@ -66,7 +81,7 @@ class HallDetailsView extends StatelessWidget {
                   ),
                   10.sH,
                   Text(
-                    '123 Maple Avenue, Pleasantville, Exampleville, 98765.',
+                    hall.address ?? "",
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                   10.sH,
@@ -85,7 +100,7 @@ class HallDetailsView extends StatelessWidget {
                                         fontWeight: FontWeight.w600,
                                         color: context.colorScheme.primary)),
                             TextSpan(
-                              text: "5000",
+                              text: "${hall.budget ?? 0}",
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyMedium!
@@ -104,7 +119,7 @@ class HallDetailsView extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            "300",
+                            "${hall.capacity ?? 0}",
                             style: context.textTheme.titleMedium!
                                 .copyWith(color: context.colorScheme.primary),
                           ),
@@ -121,7 +136,7 @@ class HallDetailsView extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   Text(
-                    "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer",
+                    hall.description ?? "",
                     style: context.textTheme.bodySmall,
                   ),
                   10.sH,
@@ -134,32 +149,16 @@ class HallDetailsView extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Wrap(
                       spacing: 8,
-                      children: [
-                        ChoiceChip(
-                          padding: EdgeInsets.zero,
-                          label: const Text("DJ"),
-                          onSelected: (val) {},
-                          selected: true,
-                        ),
-                        ChoiceChip(
-                          padding: EdgeInsets.zero,
-                          label: const Text("Photography"),
-                          onSelected: (val) {},
-                          selected: false,
-                        ),
-                        ChoiceChip(
-                          padding: EdgeInsets.zero,
-                          label: const Text("Catering"),
-                          onSelected: (val) {},
-                          selected: true,
-                        ),
-                        ChoiceChip(
-                          label: const Text("Stage and Hall decoration"),
-                          padding: EdgeInsets.zero,
-                          onSelected: (val) {},
-                          selected: true,
-                        ),
-                      ],
+                      children: hall.extraServices!
+                          .map(
+                            (e) => ChoiceChip(
+                              padding: EdgeInsets.zero,
+                              label: Text(e.name),
+                              onSelected: (val) {},
+                              selected: true,
+                            ),
+                          )
+                          .toList(),
                     ),
                   ),
                   20.sH,
@@ -178,7 +177,11 @@ class HallDetailsView extends StatelessWidget {
                           'Book Now',
                         ),
                         onPressed: () {
-                          NavigationHelper.push(context, const BookHallView());
+                          NavigationHelper.push(
+                              context,
+                              BookHallView(
+                                hall: hall,
+                              ));
                         },
                       ),
                     ),
@@ -191,7 +194,18 @@ class HallDetailsView extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.green,
-        onPressed: () {},
+        onPressed: () async {
+          String messageString =
+              '*Hall Name*: ${hall.name}\n*Address:* ${hall.address}\n';
+          Uri url = Uri.parse(
+              "whatsapp://send?phone=${hall.phoneNumber}&text=${Uri.encodeComponent(messageString)}");
+          if (!(await launchUrl(url) && hall.phoneNumber != null)) {
+            // ignore: use_build_context_synchronously
+            Utils.showSnackBar(
+                context: context,
+                message: "Could not connect, Please try again");
+          }
+        },
         child: const FaIcon(
           FontAwesomeIcons.whatsapp,
           color: Colors.white,

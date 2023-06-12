@@ -4,7 +4,8 @@
 
 import 'dart:convert';
 
-import 'extra_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:two_be_wedd_user_app/infrastructure/models/extra_service.dart';
 
 HallBookingModel hallBookingModelFromJson(String str) =>
     HallBookingModel.fromJson(json.decode(str));
@@ -16,8 +17,8 @@ class HallBookingModel {
   String? bookingId;
   String? hallId;
   String? bookedBy;
-  String? bookingDateTime;
-  int? totalBudget;
+  Timestamp? bookingDateTime;
+  num? totalBudget;
   bool? isConfirmed;
   List<ExtraService>? bookedExtraServices;
 
@@ -41,7 +42,7 @@ class HallBookingModel {
         isConfirmed: json["isConfirmed"],
         bookedExtraServices: json["bookedExtraServices"] == null
             ? []
-            : List<ExtraService>.from(json["BookedExtraServices"]!
+            : List<ExtraService>.from(json["bookedExtraServices"]!
                 .map((x) => ExtraService.fromJson(x))),
       );
 

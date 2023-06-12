@@ -9,20 +9,20 @@ UserModel userModelFromJson(String str) => UserModel.fromJson(json.decode(str));
 String userModelToJson(UserModel data) => json.encode(data.toJson());
 
 class UserModel {
-  String uid;
-  String email;
-  String name;
-  String notificationToken;
-  String phoneNumber;
-  String profileImage;
+  String? uid;
+  String? email;
+  String? name;
+  String? notificationToken;
+  String? phoneNumber;
+  String? profileImage;
 
   UserModel({
-    required this.uid,
-    required this.email,
-    required this.name,
-    required this.notificationToken,
-    required this.phoneNumber,
-    required this.profileImage,
+    this.uid,
+    this.email,
+    this.name,
+    this.notificationToken,
+    this.phoneNumber,
+    this.profileImage,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(

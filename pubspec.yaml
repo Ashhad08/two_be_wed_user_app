@@ -48,6 +48,11 @@ dependencies:
   firebase_storage: ^11.2.2
   firebase_messaging: ^14.6.2
   cached_network_image: ^3.2.3
+  url_launcher: ^6.1.11
+  intl: ^0.18.1
+  flutter_local_notifications: ^14.1.1
+  http: any
+
 
 
 dev_dependencies:

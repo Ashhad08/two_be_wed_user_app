@@ -1,9 +1,19 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:two_be_wedd_user_app/infrastructure/models/user_model.dart';
+import 'package:two_be_wedd_user_app/infrastructure/services/user_services.dart';
 import 'package:two_be_wedd_user_app/utils/extensions.dart';
 
 import '../../../../../configs/front_end_configs.dart';
+import '../../../../../infrastructure/providers/loading_helper.dart';
+import '../../../../../infrastructure/providers/profile_image_provider.dart';
+import '../../../../../infrastructure/services/auth_services.dart';
 import '../../../../../utils/navigation_helper.dart';
+import '../../../../../utils/utils.dart';
 import '../../../../elements/app_text_field.dart';
+import '../../../../elements/custom_image.dart';
 import '../../../../elements/pick_images_sheet.dart';
 import '../../../home_view/home_view.dart';
 
@@ -39,6 +49,7 @@ class _SignUpViewState extends State<SignUpView> {
 
   @override
   Widget build(BuildContext context) {
+    final userProfileImage = context.watch<ProfileImageProvider>();
     return Form(
       key: _key,
       child: Padding(
@@ -66,16 +77,33 @@ class _SignUpViewState extends State<SignUpView> {
                             ),
                           ),
                           builder: (context) => PickImageSheet(
-                            onCamera: () {},
-                            onGallery: () {},
+                            onCamera: () async {
+                              Navigator.pop(context);
+                              await userProfileImage.userprofileImage(context,
+                                  source: ImageSource.camera);
+                            },
+                            onGallery: () async {
+                              Navigator.pop(context);
+                              await userProfileImage.userprofileImage(context,
+                                  source: ImageSource.gallery);
+                            },
                           ),
                         );
                       },
-                      child: Image.asset(
-                        height: 50,
-                        width: 50,
-                        "assets/images/profile_image_placeholder.png",
-                      ),
+                      child: userProfileImage.profileImageLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : userProfileImage.profileImage != null
+                              ? CustomImage(
+                                  height: 50,
+                                  width: 50,
+                                  image: userProfileImage.profileImage!)
+                              : Image.asset(
+                                  height: 50,
+                                  width: 50,
+                                  "assets/images/profile_image_placeholder.png",
+                                ),
                     ),
                     5.sH,
                     Text(
@@ -167,7 +195,7 @@ class _SignUpViewState extends State<SignUpView> {
             AppTextField(
               hint: 'Password Here again',
               isPasswordField: true,
-              controller: _passwordController,
+              controller: _confirmPasswordController,
               maxLines: 1,
               validator: (val) {
                 if (val!.isEmpty) {
@@ -194,10 +222,9 @@ class _SignUpViewState extends State<SignUpView> {
                   child: const Text(
                     'SignUp',
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     if (_key.currentState!.validate()) {
-                      NavigationHelper.pushReplacement(
-                          context, const HomeView());
+                      await _registerUser(context: context);
                     }
                   },
                 ),
@@ -207,5 +234,56 @@ class _SignUpViewState extends State<SignUpView> {
         ),
       ),
     );
+  }
+
+  Future<void> _registerUser({
+    required BuildContext context,
+  }) async {
+    final loadingProvider = Provider.of<LoadingHelper>(context, listen: false);
+    final userImage = Provider.of<ProfileImageProvider>(context, listen: false);
+    if (userImage.profileImage == null) {
+      Utils.showSnackBar(
+          context: context,
+          message: "Kindly Select profile image",
+          color: context.colorScheme.error);
+    } else {
+      loadingProvider.stateStatus(StateStatus.IsBusy);
+      AuthServices()
+          .register(
+              email: _emailController.text.trim(),
+              password: _passwordController.text.trim(),
+              context: context)
+          .then((user) async {
+        String? userToken;
+        await FirebaseMessaging.instance.getToken().then((token) {
+          debugPrint('Current Device Token is : $token');
+          userToken = token;
+        }).then((value) async {
+          await UserServices()
+              .registerUser(
+                  userModel: UserModel(
+                    uid: user!.user!.uid,
+                    name: _nameController.text.trim(),
+                    notificationToken: userToken ?? "",
+                    phoneNumber: _phoneNumberController.text.trim(),
+                    profileImage: userImage.profileImage!,
+                    email: _emailController.text.trim(),
+                  ),
+                  context: context)
+              .then((value) {
+            loadingProvider.stateStatus(StateStatus.IsFree);
+            NavigationHelper.pushReplacement(context, HomeView());
+            Utils.showSnackBar(context: context, message: "Welcome");
+          }).onError((error, stackTrace) {
+            loadingProvider.stateStatus(StateStatus.IsError);
+            Utils.showSnackBar(
+                context: context,
+                message:
+                    error.toString().replaceAll(RegExp(r'\[.*?\]'), '').trim(),
+                color: Theme.of(context).colorScheme.error);
+          });
+        });
+      });
+    }
   }
 }

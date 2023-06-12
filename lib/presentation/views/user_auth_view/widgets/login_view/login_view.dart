@@ -1,8 +1,14 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:two_be_wedd_user_app/utils/extensions.dart';
 
 import '../../../../../configs/front_end_configs.dart';
+import '../../../../../infrastructure/providers/loading_helper.dart';
+import '../../../../../infrastructure/services/auth_services.dart';
+import '../../../../../infrastructure/services/user_services.dart';
 import '../../../../../utils/navigation_helper.dart';
+import '../../../../../utils/utils.dart';
 import '../../../../elements/app_text_field.dart';
 import '../../../home_view/home_view.dart';
 
@@ -87,9 +93,9 @@ class _LoginViewState extends State<LoginView> {
                   child: const Text(
                     'Login',
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     if (_key.currentState!.validate()) {
-                      NavigationHelper.pushReplacement(context, const HomeView());
+                      await _login(context: context);
                     }
                   },
                 ),
@@ -99,5 +105,52 @@ class _LoginViewState extends State<LoginView> {
         ),
       ),
     );
+  }
+
+  Future<void> _login({
+    required BuildContext context,
+  }) async {
+    final loadingProvider = Provider.of<LoadingHelper>(context, listen: false);
+
+    loadingProvider.stateStatus(StateStatus.IsBusy);
+    AuthServices()
+        .login(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+            context: context)
+        .then((user) async {
+      String? userToken;
+      await FirebaseMessaging.instance.getToken().then((token) {
+        debugPrint('Current Device Token is : $token');
+        userToken = token;
+      }).then((value) {
+        UserServices()
+            .updateUserNotificationToken(
+                context: context, token: userToken, uid: user!.user!.uid)
+            .then((value) async {
+          loadingProvider.stateStatus(StateStatus.IsFree);
+          NavigationHelper.pushReplacement(context, HomeView());
+          Utils.showSnackBar(context: context, message: "Welcome");
+        }).onError((error, stackTrace) {
+          loadingProvider.stateStatus(StateStatus.IsFree);
+          Utils.showSnackBar(
+              context: context,
+              message:
+                  error.toString().replaceAll(RegExp(r'\[.*?\]'), '').trim(),
+              color: Theme.of(context).colorScheme.error);
+        });
+      }).onError((error, stackTrace) {
+        loadingProvider.stateStatus(StateStatus.IsFree);
+        Utils.showSnackBar(
+            context: context,
+            message: error.toString().replaceAll(RegExp(r'\[.*?\]'), '').trim(),
+            color: Theme.of(context).colorScheme.error);
+      });
+    }).onError((error, stackTrace) {
+      Utils.showSnackBar(
+          context: context,
+          message: error.toString().replaceAll(RegExp(r'\[.*?\]'), '').trim(),
+          color: Theme.of(context).colorScheme.error);
+    });
   }
 }
