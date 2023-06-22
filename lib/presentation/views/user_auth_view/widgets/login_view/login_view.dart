@@ -10,6 +10,7 @@ import '../../../../../infrastructure/services/user_services.dart';
 import '../../../../../utils/navigation_helper.dart';
 import '../../../../../utils/utils.dart';
 import '../../../../elements/app_text_field.dart';
+import '../../../forgot_password_view/forgot_password_view.dart';
 import '../../../home_view/home_view.dart';
 
 class LoginView extends StatefulWidget {
@@ -77,6 +78,15 @@ class _LoginViewState extends State<LoginView> {
                 }
                 return null;
               },
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  NavigationHelper.push(context, const ForgotPasswordView());
+                },
+                child: const Text("Forgot Password"),
+              ),
             ),
             30.sH,
             Align(
